@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PitchUp — Ear Training | p1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --purple: #9D5FFF; --purple-light: #B98FFF;
+    --purple-dark: #7C3AED; --purple-dim: #3D2070;
+    --bg: #111118; --surface: #13131F;
+    --border: #2A2A3A; --text: #FFFFFF;
+    --green: #4ADE80; --green-bg: #14532D; --green-border: #4ADE80;
+    --red: #F87171; --red-bg: #450A0A; --red-border: #F87171;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh; display: flex;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen {
+    display: none;
+    width: 390px; min-height: 844px;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; animation: screenIn 0.3s ease both; }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── SHARED ── */
+  .phone-glow::before {
+    content: ''; position: absolute; top: 0; left: 50%;
+    transform: translateX(-50%); width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(157,95,255,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .btn-primary {
+    width: 100%; padding: 18px;
+    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+    color: #fff; border-radius: 14px; font-size: 16px; font-weight: 700;
+    border: none; cursor: pointer; font-family: 'Syne', sans-serif;
+    box-shadow: 0 8px 32px rgba(157,95,255,0.35); transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::after { content: ''; position: absolute; top: 0; left: -100%; width: 60px; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transition: left 0.4s; }
+  .btn-primary:hover { box-shadow: 0 12px 40px rgba(157,95,255,0.5); }
+  .btn-primary:hover::after { left: 150%; }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    width: 100%; padding: 16px; background: #1E1E2E; color: var(--text);
+    border-radius: 14px; font-size: 15px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.25); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--purple); background: rgba(157,95,255,0.08); }
+  .btn-ghost {
+    width: 100%; padding: 14px; background: transparent; color: rgba(255,255,255,0.8);
+    border-radius: 14px; font-size: 13px; font-weight: 500;
+    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s;
+  }
+  .btn-ghost:hover { color: #FF6B8A; }
+  .icon-btn {
+    width: 36px; height: 36px; background: var(--surface); border-radius: 99px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  }
+  .icon-btn:hover { border-color: var(--purple); }
+
+  /* ════════════════════════════
+     HOME SCREEN
+  ════════════════════════════ */
+  #screen-home {
+    align-items: center; justify-content: flex-start;
+    padding: 32px 32px 48px;
+    gap: 32px;
+  }
+  .home-bottom { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .logo-section { display: flex; flex-direction: column; align-items: center; gap: 20px; animation: fadeDown 0.6s ease both; z-index: 1; }
+  .piano-keys { display: flex; align-items: flex-end; }
+  .white-key { width: 28px; height: 80px; background: linear-gradient(180deg, #F5F5F5, #FFFFFF); border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); position: relative; z-index: 1; margin: 0 1.5px; }
+  .black-key { width: 18px; height: 52px; background: linear-gradient(180deg, #4C1D95, #9D5FFF); border-radius: 0 0 4px 4px; margin: 0 -10px; position: relative; z-index: 2; box-shadow: 0 6px 16px rgba(157,95,255,0.5); }
+  .logo-text { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .logo-text h1 { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800; letter-spacing: -1.5px; background: linear-gradient(135deg, #FFFFFF, #C4B5FD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .tagline { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.6); letter-spacing: 3px; text-transform: uppercase; }
+  .progress-section { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; animation: fadeUp 0.7s 0.1s ease both; z-index: 1; }
+  .progress-numbers { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .progress-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 3px; text-transform: uppercase; }
+  .progress-count { font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; color: var(--purple-light); letter-spacing: -3px; line-height: 1; }
+  .progress-sub { font-size: 14px; color: rgba(255,255,255,0.7); }
+  .progress-bar { display: flex; gap: 6px; }
+  .bar-done { width: 28px; height: 6px; background: linear-gradient(90deg, var(--purple), var(--purple-light)); border-radius: 99px; }
+  .bar-todo { width: 22px; height: 6px; background: var(--border); border-radius: 99px; }
+  .next-card { width: 100%; background: #1E1E2E; border-radius: 16px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; border: 1px solid rgba(255,255,255,0.25); transition: all 0.2s; cursor: pointer; }
+  .next-card:hover { border-color: var(--purple); background: #232338; }
+  .next-card-top { display: flex; align-items: center; justify-content: space-between; }
+  .next-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .next-info { display: flex; flex-direction: column; gap: 4px; }
+  .next-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.6); letter-spacing: 3px; text-transform: uppercase; }
+  .next-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+  .next-desc { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .difficulty-small { font-size: 10px; font-weight: 700; color: var(--purple-light); letter-spacing: 1px; text-transform: uppercase; background: var(--purple-dim); border-radius: 6px; padding: 3px 8px; }
+  .btn-start { flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: #fff; border-radius: 10px; font-size: 14px; font-weight: 700; border: none; cursor: pointer; font-family: 'Syne', sans-serif; box-shadow: 0 4px 16px rgba(157,95,255,0.35); transition: all 0.2s; }
+  .btn-start:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(157,95,255,0.5); }
+  .cta-section { display: flex; flex-direction: column; gap: 10px; width: 100%; animation: fadeUp 0.8s 0.2s ease both; z-index: 1; }
+
+  /* ════════════════════════════
+     LEVEL SELECTION SCREEN
+  ════════════════════════════ */
+  #screen-levels { padding: 48px 32px; flex-direction: column; gap: 0; }
+  .levels-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .levels-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .levels-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  .level-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border-radius: 14px; padding: 16px 18px;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+  }
+  .level-row:hover { border-color: var(--purple); }
+  .level-row.current { background: #1A0F35; border: 2px solid var(--purple); }
+  .level-row.locked { opacity: 0.4; cursor: default; }
+  .level-row.locked:hover { border-color: var(--border); }
+  .level-row-left { display: flex; align-items: center; gap: 14px; }
+  .level-num {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+  }
+  .level-num.done { background: var(--purple); color: #fff; }
+  .level-num.current-num { background: var(--purple); color: #fff; }
+  .level-num.locked-num { background: var(--border); color: rgba(255,255,255,0.5); }
+  .level-info { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .level-name { font-size: 15px; font-weight: 700; }
+  .level-sub { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .level-status { border-radius: 8px; padding: 5px 10px; }
+  .level-status.done { background: #14532D; }
+  .level-status.done span { font-size: 11px; font-weight: 700; color: var(--green); letter-spacing: 1px; }
+  .level-status.next { background: var(--purple-dim); }
+  .level-status.next span { font-size: 11px; font-weight: 700; color: var(--purple-light); letter-spacing: 1px; }
+  .level-lock { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0; }
+  .level-lock svg { width: 16px; height: 16px; stroke: rgba(255,255,255,0.5); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .level-difficulty { display: inline-block; align-self: flex-start; width: fit-content; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+  .level-difficulty.easy { background: rgba(74,222,128,0.15); color: #4ADE80; }
+  .level-difficulty.easy-medium { background: rgba(250,204,21,0.15); color: #FACC15; }
+  .level-difficulty.medium { background: rgba(251,146,60,0.15); color: #FB923C; }
+  .level-difficulty.hard { background: rgba(248,113,113,0.15); color: #F87171; }
+
+  /* ════════════════════════════
+     LEVEL SCREEN
+  ════════════════════════════ */
+  #screen-level {
+    align-items: center; padding: 48px 32px 40px;
+    flex-direction: column; gap: 0;
+  }
+  .level-topbar { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 28px; }
+  .level-topbar-info { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .difficulty-pill { display: inline-block; background: var(--purple-dim); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; color: var(--purple-light); letter-spacing: 1px; align-self: flex-start; }
+  .level-topbar-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; }
+  .level-topbar-desc { font-size: 12px; color: rgba(255,255,255,0.6); }
+  .level-topbar-actions { display: flex; gap: 10px; }
+  .note-counter { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .replay-btn { background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s; }
+  .replay-btn:hover { opacity: 1; }
+  .replay-btn svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  /* Practice mode toggle */
+  .practice-toggle-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .practice-toggle-label { font-size: 14px; font-weight: 500; color: var(--text); }
+  .practice-toggle-label span { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 99px; cursor: pointer; transition: background 0.2s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .toggle-switch input:checked + .toggle-slider { background: var(--purple); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* Timer circle — conic-gradient ring */
+  .timer-wrap { position: relative; width: 150px; height: 150px; margin-bottom: 36px; cursor: pointer; border-radius: 99px; }
+  .timer-ring-outer {
+    width: 150px; height: 150px; border-radius: 99px;
+    background: conic-gradient(var(--purple) 360deg, var(--border) 360deg);
+    display: flex; align-items: center; justify-content: center;
+    transition: none;
+  }
+  .timer-ring-inner {
+    width: 136px; height: 136px; border-radius: 99px;
+    background: var(--surface);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; transition: background 0.3s;
+  }
+  .timer-wrap.paused .timer-ring-inner { background: rgba(157,95,255,0.2); }
+  .timer-pause-icon { font-size: 20px; color: rgba(255,255,255,0.4); line-height: 1; transition: all 0.2s; }
+  .timer-wrap.paused .timer-pause-icon { color: var(--purple-light); font-size: 24px; }
+  .timer-number { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+
+  /* Piano keyboard */
+  .keyboard-wrap { position: relative; margin-bottom: 36px; }
+  .keyboard { display: flex; align-items: flex-end; gap: 2px; position: relative; }
+  .key-white {
+    width: 44px; height: 120px;
+    background: linear-gradient(180deg, #F0F0F0, #FFFFFF);
+    border-radius: 0 0 8px 8px; border: 1px solid #D0D0D0;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    position: relative; z-index: 1;
+  }
+  .key-white:hover { background: #F0E8FF; border-color: var(--purple); }
+  .key-white.highlighted { background: linear-gradient(180deg, var(--purple-light), var(--purple)); border-color: var(--purple-light); }
+  .key-white span { font-size: 11px; font-weight: 600; color: #999; }
+  .key-white.highlighted span { color: #fff; }
+  .key-black {
+    width: 28px; height: 76px;
+    background: linear-gradient(180deg, #1A1040, #2D1B69);
+    border-radius: 0 0 5px 5px;
+    position: absolute; z-index: 2; cursor: pointer; transition: all 0.15s;
+    top: 0;
+  }
+  .key-black:hover { background: linear-gradient(180deg, #2D1B69, #4C2D96); }
+  .key-black.highlighted { background: linear-gradient(180deg, var(--purple), var(--purple-light)); }
+
+  /* Note reveal */
+  .note-reveal {
+    display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%;
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+  }
+  .note-reveal.visible { opacity: 1; }
+  .note-reveal-card {
+    width: 100%; border-radius: 16px;
+    padding: 16px 24px; display: flex; align-items: center; justify-content: center;
+    gap: 10px; border: 1px solid var(--border); transition: all 0.3s;
+    background: var(--surface);
+  }
+  .note-reveal-card.correct { background: #14532D; border-color: var(--green); }
+  .note-reveal-card.wrong { background: #450A0A; border-color: var(--red); }
+  .note-reveal-label { font-size: 13px; color: rgba(255,255,255,0.8); }
+  .note-reveal-name { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--purple-light); }
+  .note-reveal-result { font-size: 14px; font-weight: 700; }
+  .note-reveal-result.correct { color: var(--green); }
+  .note-reveal-result.wrong { color: var(--red); }
+  /* Key pressed by user */
+  .key-white.pressed { background: linear-gradient(180deg, #FFF3D0, #FFE082); border-color: #F9A825; }
+  .key-white.pressed span { color: #7A5800; }
+  .key-black.pressed { background: linear-gradient(180deg, #7A5800, #F9A825); }
+
+  /* ════════════════════════════
+     RESULTS SCREEN
+  ════════════════════════════ */
+  #screen-results {
+    align-items: center; justify-content: space-between;
+    padding: 60px 32px 48px;
+  }
+  .result-top { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .result-badge {
+    width: 100px; height: 100px; border-radius: 99px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; transition: all 0.3s;
+  }
+  .result-badge.pass { background: var(--green-bg); border: 3px solid var(--green); }
+  .result-badge.fail { background: var(--red-bg); border: 3px solid var(--red); }
+  .result-title-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .result-title { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -1px; text-align: center; }
+  .result-subtitle { font-size: 15px; color: rgba(255,255,255,0.7); text-align: center; }
+  .result-home-btn {
+    position: absolute; top: 48px; right: 32px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+    background: var(--surface);
+    border-radius: 99px;
+    border: 1px solid rgba(255,255,255,0.4);
+    opacity: 0.8;
+  }
+  .result-home-btn:hover { opacity: 1; border-color: #fff; }
+  .result-home-btn svg { width: 16px; height: 16px; }
+  .result-middle { display: flex; flex-direction: column; align-items: center; gap: 24px; width: 100%; }
+  .result-score-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .result-score-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); letter-spacing: 3px; text-transform: uppercase; }
+  .result-score { font-family: 'Syne', sans-serif; font-size: 80px; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+  .result-score.pass { color: var(--purple-light); }
+  .result-score.fail { color: var(--red); }
+  .result-accuracy { font-size: 14px; color: rgba(255,255,255,0.7); }
+  .result-stats { display: flex; gap: 12px; width: 100%; }
+  .stat-card {
+    flex: 1; background: var(--surface); border-radius: 14px; padding: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    border: 1px solid var(--border);
+  }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .stat-num.correct { color: var(--green); }
+  .stat-num.missed { color: var(--red); }
+  .stat-num.time { color: var(--purple-light); }
+  .stat-label { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .result-message {
+    width: 100%; border-radius: 14px; padding: 14px 20px;
+    display: flex; align-items: center;
+  }
+  .result-message.pass { background: var(--green-bg); border: 1px solid var(--green); }
+  .result-message.fail { background: var(--red-bg); border: 1px solid var(--red); }
+  .result-message span { font-size: 14px; font-weight: 600; }
+  .result-message.pass span { color: var(--green); }
+  .result-message.fail span { color: var(--red); }
+  .result-ctas { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+  /* DEBUG BUTTONS */
+  .debug-buttons { display: none; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
+  .debug-buttons.visible { display: flex; }
+  .btn-debug {
+    flex: 1; padding: 10px; background: transparent;
+    color: rgba(255,255,255,0.25); border-radius: 10px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    border: 1px dashed rgba(255,255,255,0.15);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .btn-debug:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.3); }
+
+  /* Animations */
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(157,95,255,0.4); } 50% { box-shadow: 0 0 0 12px rgba(157,95,255,0); } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     HOME SCREEN
+══════════════════════════════ -->
+<div id="screen-home" class="screen active phone-glow">
+  <div class="logo-section">
+    <div class="piano-keys">
+      <div class="white-key"></div>
+      <div class="black-key"></div>
+      <div class="white-key"></div>
+      <div class="black-key"></div>
+      <div class="white-key"></div>
+      <div class="white-key"></div>
+      <div class="black-key"></div>
+      <div class="white-key"></div>
+    </div>
+    <div class="logo-text">
+      <h1>PitchUp</h1>
+      <span class="tagline">Ear Training</span>
+    </div>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-numbers">
+      <span class="progress-label">Your Progress</span>
+      <span class="progress-count" id="home-progress-count">0/8</span>
+      <span class="progress-sub">Levels completed</span>
+    </div>
+    <div class="progress-bar" id="home-progress-bar">
+    </div>
+  </div>
+
+  <div class="home-bottom">
+    <div class="next-card" onclick="startCurrentLevel()" id="home-next-card">
+      <div class="next-card-top">
+        <div class="next-info">
+          <span class="next-label">Next Up</span>
+          <span class="next-title" id="home-next-title">Level 4</span>
+          <span class="next-desc" id="home-next-desc">Whole + half tones · Fast</span>
+        </div>
+        <span class="difficulty-small" id="home-next-difficulty">Medium</span>
+      </div>
+      <div class="next-card-bottom">
+        <button class="btn-start" onclick="startCurrentLevel()" id="home-start-btn">▶ Start Level 1</button>
+      </div>
+    </div>
+    <div class="cta-section">
+      <button class="btn-secondary" onclick="goTo('screen-levels')">Select a Different Level</button>
+      <div class="practice-toggle-wrap">
+        <div class="practice-toggle-label">
+          Practice mode
+          <span>All answers count as correct</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="practice-mode-toggle" onchange="practiceMode = this.checked">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <button class="btn-ghost">♥ Support the creator</button>
+    </div>
+
+    <!-- DEBUG BUTTONS — for testing screens only, remove before launch -->
+    <div class="debug-buttons" id="debug-buttons">
+      <button class="btn-debug" onclick="showResultsDebug(true)">✓ Level Success</button>
+      <button class="btn-debug" onclick="showResultsDebug(false)">✕ Level Failed</button>
+      <button class="btn-debug" id="btn-toggle-locks" onclick="toggleAllLevels()">🔓 Unlock All</button>
+    </div>
+
+    <!-- Secret debug toggle — intentionally tiny and missable -->
+    <button id="debug-star" onclick="document.getElementById('debug-buttons').classList.toggle('visible')" style="position:fixed;bottom:10px;right:10px;background:none;border:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.12);padding:4px;line-height:1;z-index:999;">★</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LEVEL SELECTION SCREEN
+══════════════════════════════ -->
+<div id="screen-levels" class="screen">
+  <div class="levels-header">
+    <span class="levels-title">Select Level</span>
+    <div class="icon-btn" onclick="goTo('screen-home')">✕</div>
+  </div>
+  <div class="levels-list" id="levels-list">
+    <!-- Populated by JS from level config -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LEVEL SCREEN
+══════════════════════════════ -->
+<div id="screen-level" class="screen">
+  <div class="level-topbar">
+    <div class="level-topbar-info">
+      <span class="level-difficulty" id="topbar-difficulty">MEDIUM</span>
+      <span class="level-topbar-title" id="topbar-title">Level 4 — Up the Tempo</span>
+      <span class="level-topbar-desc" id="topbar-desc">Whole + half tones · Fast</span>
+    </div>
+    <div class="level-topbar-actions">
+      <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:rgba(255,255,255,0.7);" onclick="goTo('screen-levels')">✕</div>
+    </div>
+  </div>
+
+  <div class="note-counter" id="note-counter">
+    <span id="note-counter-text">NOTE 1 / 12</span>
+    <button class="replay-btn" onclick="replayNote()" title="Replay note">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+    </button>
+  </div>
+
+  <div class="timer-wrap" id="timer-wrap" onclick="togglePause()">
+    <div class="timer-ring-outer" id="timer-ring-outer">
+      <div class="timer-ring-inner" id="timer-ring-inner">
+        <span class="timer-pause-icon" id="timer-pause-icon">⏸</span>
+        <span class="timer-number" id="timer-display">5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="keyboard-wrap">
+    <div class="keyboard" id="keyboard">
+      <div class="key-white" id="key-C" onclick="pressKey('C')"><span>C</span></div>
+      <div class="key-white" id="key-D" onclick="pressKey('D')"><span>D</span></div>
+      <div class="key-white" id="key-E" onclick="pressKey('E')"><span>E</span></div>
+      <div class="key-white" id="key-F" onclick="pressKey('F')"><span>F</span></div>
+      <div class="key-white" id="key-G" onclick="pressKey('G')"><span>G</span></div>
+      <div class="key-white" id="key-A" onclick="pressKey('A')"><span>A</span></div>
+      <div class="key-white" id="key-B" onclick="pressKey('B')"><span>B</span></div>
+      <!-- Black keys -->
+      <div class="key-black" id="key-Cs" onclick="pressKey('C#')" style="left:32px;"></div>
+      <div class="key-black" id="key-Ds" onclick="pressKey('D#')" style="left:78px;"></div>
+      <div class="key-black" id="key-Fs" onclick="pressKey('F#')" style="left:170px;"></div>
+      <div class="key-black" id="key-Gs" onclick="pressKey('G#')" style="left:216px;"></div>
+      <div class="key-black" id="key-As" onclick="pressKey('A#')" style="left:262px;"></div>
+    </div>
+  </div>
+
+  <div class="note-reveal" id="note-reveal">
+    <div class="note-reveal-card" id="note-reveal-card">
+      <span class="note-reveal-label" id="note-reveal-label">The note was</span>
+      <span class="note-reveal-name" id="revealed-note">E</span>
+      <span class="note-reveal-result" id="note-result"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     RESULTS SCREEN
+══════════════════════════════ -->
+<div id="screen-results" class="screen" style="position:relative;">
+  <div class="result-home-btn" onclick="goTo('screen-home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
+    </svg>
+  </div>
+  <div class="result-top">
+    <div class="result-badge" id="result-badge">✓</div>
+    <div class="result-title-wrap">
+      <span class="result-title" id="result-title">Level Passed!</span>
+      <span class="result-subtitle">Level 4 · Up the Tempo</span>
+    </div>
+  </div>
+
+  <div class="result-middle">
+    <div class="result-score-wrap">
+      <span class="result-score-label">YOUR SCORE</span>
+      <span class="result-score" id="result-score">0/12</span>
+      <span class="result-accuracy" id="result-accuracy">0% accuracy</span>
+    </div>
+    <div class="result-stats">
+      <div class="stat-card">
+        <span class="stat-num correct" id="stat-correct">0</span>
+        <span class="stat-label">Correct</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num missed" id="stat-missed">0</span>
+        <span class="stat-label">Missed</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num time">2:48</span>
+        <span class="stat-label">Time</span>
+      </div>
+    </div>
+    <div class="result-message" id="result-message">
+      <span id="result-message-text">Level 5 unlocked! Keep going.</span>
+    </div>
+  </div>
+
+  <div class="result-ctas" id="result-ctas">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LEVEL CONFIG — Edit this to change levels
+══════════════════════════════ -->
+<script id="level-config" type="application/json">
+[
+  {
+    "level": 1,
+    "name": "First Steps",
+    "difficulty": "Easy",
+    "description": "Whole tones · Slow",
+    "notes": ["C","D","E","F","G","A","B"],
+    "timeBetweenNotes": 7,
+    "totalNotes": 50,
+    "passingScore": 45,
+    "unlocked": true
+  },
+  {
+    "level": 2,
+    "name": "Keep going",
+    "difficulty": "Easy",
+    "description": "Whole tones · Fast",
+    "notes": ["C","D","E","F","G","A","B"],
+    "timeBetweenNotes": 6,
+    "totalNotes": 60,
+    "passingScore": 54,
+    "unlocked": false
+  },
+  {
+    "level": 3,
+    "name": "Half Steps",
+    "difficulty": "Easy-Medium",
+    "description": "Whole + half tones · Slow",
+    "notes": ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],
+    "timeBetweenNotes": 7,
+    "totalNotes": 50,
+    "passingScore": 45,
+    "unlocked": false
+  },
+  {
+    "level": 4,
+    "name": "Up the Tempo",
+    "difficulty": "Easy-Medium",
+    "description": "Whole + half tones · Fast",
+    "notes": ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],
+    "timeBetweenNotes": 6,
+    "totalNotes": 60,
+    "passingScore": 54,
+    "unlocked": false
+  },
+  {
+    "level": 5,
+    "name": "Two's Company",
+    "difficulty": "Medium",
+    "description": "Whole tone dyads · Slow",
+    "notes": ["C","D","E","F","G","A","B"],
+    "timeBetweenNotes": 10,
+    "totalNotes": 30,
+    "passingScore": 27,
+    "unlocked": false
+  },
+  {
+    "level": 6,
+    "name": "Dyad Rush",
+    "difficulty": "Medium",
+    "description": "Whole tone dyads · Fast",
+    "notes": ["C","D","E","F","G","A","B"],
+    "timeBetweenNotes": 8,
+    "totalNotes": 40,
+    "passingScore": 36,
+    "unlocked": false
+  },
+  {
+    "level": 7,
+    "name": "Hard dyads",
+    "difficulty": "Hard",
+    "description": "Whole + half tone dyads · Slow",
+    "notes": ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],
+    "timeBetweenNotes": 10,
+    "totalNotes": 30,
+    "passingScore": 27,
+    "unlocked": false
+  },
+  {
+    "level": 8,
+    "name": "Hard & Fast",
+    "difficulty": "Hard",
+    "description": "Whole + half tone dyads · Fast",
+    "notes": ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],
+    "timeBetweenNotes": 8,
+    "totalNotes": 40,
+    "passingScore": 36,
+    "unlocked": false
+  }
+]
+</script>
+
+<script>
+  // ── NAVIGATION ──
+  function goTo(id) {
+    // Stop everything when leaving the level screen
+    stopLevel();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 'screen-level') startLevel();
+    window.scrollTo(0, 0);
+  }
+
+  // ── STOP LEVEL — cancel timer, kill audio, reset state ──
+  function stopLevel() {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+    // Stop any currently playing audio nodes
+    if (currentAudioNodes) {
+      currentAudioNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+      currentAudioNodes = [];
+    }
+  }
+
+  // ── LEVEL LOGIC ──
+  const NOTE_KEYS = { 'C':'key-C','D':'key-D','E':'key-E','F':'key-F','G':'key-G','A':'key-A','B':'key-B','C#':'key-Cs','D#':'key-Ds','F#':'key-Fs','G#':'key-Gs','A#':'key-As' };
+
+  // ── READ LEVEL CONFIG FROM JSON ──
+  const LEVELS = JSON.parse(document.getElementById('level-config').textContent);
+  let CURRENT_LEVEL_INDEX = 0;
+
+  // These are recomputed in startLevel() based on CURRENT_LEVEL_INDEX
+  let TOTAL_NOTES, TIME_PER_NOTE, NOTE_POOL, isDyadLevel;
+
+  let currentNote = 0;
+  let correctCount = 0;
+  let timerInterval = null;
+  let timeLeft = TIME_PER_NOTE;
+  let paused = false;
+  let noteQueue = [];
+  let lastPressedKey = null;
+  let practiceMode = false;
+
+  // ── POPULATE UI FROM CONFIG ──
+  function startCurrentLevel() {
+    // CURRENT_LEVEL_INDEX is already set — just navigate
+    goTo('screen-level');
+  }
+
+  function populateFromConfig() {
+    // Current level = last unlocked level (the one the player should play next)
+    const nextLockedIdx = LEVELS.findIndex(l => !l.unlocked);
+    CURRENT_LEVEL_INDEX = nextLockedIdx > 0 ? nextLockedIdx - 1 : LEVELS.length - 1;
+    const lvl = LEVELS[CURRENT_LEVEL_INDEX];
+
+    // Home screen — progress bar and count
+    const completedCount = nextLockedIdx > 0 ? nextLockedIdx - 1 : LEVELS.length;
+    const totalLevels = LEVELS.length;
+    document.getElementById('home-progress-count').textContent = `${completedCount}/${totalLevels}`;
+    const bar = document.getElementById('home-progress-bar');
+    bar.innerHTML = '';
+    for (let i = 0; i < totalLevels; i++) {
+      const div = document.createElement('div');
+      div.className = i < completedCount ? 'bar-done' : 'bar-todo';
+      bar.appendChild(div);
+    }
+
+    // Home screen — next up card
+    document.getElementById('home-next-title').textContent = `Level ${lvl.level}`;
+    document.getElementById('home-next-desc').textContent = lvl.description;
+    document.getElementById('home-next-difficulty').textContent = lvl.difficulty;
+    document.getElementById('home-start-btn').textContent = `▶ Start Level ${lvl.level}`;
+
+    // Level screen — topbar
+    const diffClass = lvl.difficulty.toLowerCase().replace(' ', '-').replace('/', '-');
+    const topbarDiff = document.getElementById('topbar-difficulty');
+    topbarDiff.textContent = lvl.difficulty;
+    topbarDiff.className = `level-difficulty ${diffClass}`;
+    document.getElementById('topbar-title').textContent = `Level ${lvl.level} — ${lvl.name}`;
+    document.getElementById('topbar-desc').textContent = lvl.description;
+
+    // Level selection screen — build rows from config
+    const list = document.getElementById('levels-list');
+    list.innerHTML = '';
+    LEVELS.forEach((l, i) => {
+      const isDone = i < CURRENT_LEVEL_INDEX;
+      const isCurrent = i === CURRENT_LEVEL_INDEX;
+      const isLocked = !l.unlocked && !isDone && !isCurrent;
+      const row = document.createElement('div');
+      row.className = `level-row${isCurrent ? ' current' : ''}${isLocked ? ' locked' : ''}`;
+      if (!isLocked) row.onclick = () => { CURRENT_LEVEL_INDEX = i; goTo('screen-level'); };
+      const diffClass = l.difficulty.toLowerCase().replace(' ', '-').replace('/', '-');
+      row.innerHTML = `
+        <div class="level-row-left">
+          <div class="level-num ${isDone ? 'done' : isCurrent ? 'current-num' : 'locked-num'}">${l.level}</div>
+          <div class="level-info">
+            <span class="level-difficulty ${diffClass}">${l.difficulty}</span>
+            <span class="level-name">${l.name}</span>
+            <span class="level-sub">${l.description}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          ${isDone
+            ? `<div class="level-status done"><span>DONE</span></div>`
+            : isCurrent
+            ? `<div class="level-status next"><span>NEXT</span></div>`
+            : `<div class="level-lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>`}
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // ── LOCALSTORAGE PROGRESS ──
+  function saveProgress() {
+    const data = {
+      levels: LEVELS.map(l => ({ level: l.level, unlocked: l.unlocked }))
+    };
+    localStorage.setItem('pitchup-progress', JSON.stringify(data));
+  }
+
+  function loadProgress() {
+    try {
+      const saved = localStorage.getItem('pitchup-progress');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      // Restore unlocked states from saved data
+      data.levels.forEach(saved => {
+        const match = LEVELS.find(l => l.level === saved.level);
+        if (match) match.unlocked = saved.unlocked;
+      });
+    } catch(e) {}
+  }
+
+  // Load saved progress then populate UI
+  let allUnlocked = false;
+  loadProgress();
+  allUnlocked = LEVELS.every(l => l.unlocked);
+  document.getElementById('btn-toggle-locks').textContent = allUnlocked ? '🔒 Lock All' : '🔓 Unlock All';
+  populateFromConfig();
+
+  let currentAudioNodes = [];
+
+  function generateDyadQueue(pool, count) {
+    const pairs = [];
+    const doubled = shuffle([...pool, ...pool, ...pool]);
+    for (let i = 0; i < count; i++) {
+      let n1 = doubled[i % doubled.length];
+      let n2 = doubled[(i + Math.ceil(count / 2)) % doubled.length];
+      if (n2 === n1) n2 = pool[(pool.indexOf(n1) + 1) % pool.length];
+      pairs.push([n1, n2]);
+    }
+    return pairs;
+  }
+
+  function startLevel() {
+    stopLevel();
+    // Recompute level config from current index
+    const level = LEVELS[CURRENT_LEVEL_INDEX];
+    TOTAL_NOTES = level.totalNotes;
+    TIME_PER_NOTE = level.timeBetweenNotes;
+    NOTE_POOL = level.notes;
+    isDyadLevel = level.description.toLowerCase().includes('dyad');
+    currentNote = 0;
+    correctCount = 0;
+    lastPressedKey = null;
+    paused = false;
+    elapsedAtPause = 0;
+    document.getElementById('timer-wrap')?.classList.remove('paused');
+    document.getElementById('timer-pause-icon').textContent = '⏸';
+    noteQueue = isDyadLevel
+      ? generateDyadQueue(NOTE_POOL, TOTAL_NOTES)
+      : shuffle([...NOTE_POOL, ...NOTE_POOL].slice(0, TOTAL_NOTES));
+    clearAllKeyStates();
+    document.getElementById('note-reveal').classList.remove('visible');
+    updateCounter();
+    nextNote();
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function nextNote() {
+    if (currentNote >= TOTAL_NOTES) { showResults(); return; }
+    clearAllKeyStates();
+    document.getElementById('note-reveal').classList.remove('visible');
+    lastPressedKey = null;
+    updateCounter();
+    startTimer();
+    const note = noteQueue[currentNote];
+    if (isDyadLevel) {
+      playDyad(note[0], note[1]);
+    } else {
+      playNote(note);
+    }
+  }
+
+  let animFrameId = null;
+  let startTimestamp = null;
+  let totalDuration = TIME_PER_NOTE * 1000;
+  let elapsedAtPause = 0;
+  let pauseTimestamp = null;
+
+  let lastRingState = null;
+
+  function startTimer() {
+    cancelAnimationFrame(animFrameId);
+    elapsedAtPause = 0;
+    lastRingState = null;
+    startTimestamp = null;
+    totalDuration = (TIME_PER_NOTE + 1) * 1000; // +1s so display shows full count from TIME_PER_NOTE to 1
+    document.getElementById('timer-display').textContent = TIME_PER_NOTE;
+    animFrameId = requestAnimationFrame(animateTimer);
+  }
+
+  function animateTimer(timestamp) {
+    if (paused) return;
+    if (!startTimestamp) startTimestamp = timestamp;
+    const elapsed = elapsedAtPause + (timestamp - startTimestamp);
+    const remaining = Math.max(0, totalDuration - elapsed);
+    const pct = remaining / totalDuration;
+
+    // Update number display — show remaining whole seconds (ceil so it shows the full second until it's gone)
+    const secs = Math.ceil(remaining / 1000);
+    const displaySecs = secs === 0 ? 0 : secs;
+    document.getElementById('timer-display').textContent = displaySecs;
+
+    // Update conic-gradient ring smoothly with gradual color transition
+    const deg = Math.round(pct * 3600) / 10;
+    // Smooth color: purple (262°) → amber (38°) → red (0°)
+    const hue = pct > 0.5
+      ? 262 - ((1 - pct) * 2 * (262 - 38))
+      : 38 * (pct / 0.5);
+    const lightness = 55 + pct * 20;
+    const ringEl = document.getElementById('timer-ring-outer');
+    lastRingState = { deg, hue, lightness };
+    ringEl.style.background =
+      `conic-gradient(hsl(${hue},100%,${lightness}%) ${deg}deg, #2A2A3A ${deg}deg)`;
+
+    if (remaining <= 0) {
+      checkAnswer();
+      return;
+    }
+    animFrameId = requestAnimationFrame(animateTimer);
+  }
+
+  // ── DEBUG ──
+  function toggleAllLevels() {
+    allUnlocked = !allUnlocked;
+    LEVELS.forEach(l => l.unlocked = allUnlocked);
+    // Always keep level 1 unlocked
+    LEVELS[0].unlocked = true;
+    document.getElementById('btn-toggle-locks').textContent = allUnlocked ? '🔒 Lock All' : '🔓 Unlock All';
+    saveProgress();
+    populateFromConfig();
+  }
+
+  function showResultsDebug(passed) {
+    correctCount = passed ? TOTAL_NOTES : Math.floor(TOTAL_NOTES * 0.5);
+    currentNote = TOTAL_NOTES;
+    noteQueue = isDyadLevel
+      ? generateDyadQueue(NOTE_POOL, TOTAL_NOTES)
+      : [...NOTE_POOL, ...NOTE_POOL].slice(0, TOTAL_NOTES);
+    showResults();
+  }
+
+  // Called when user taps a piano key
+  function pressKey(note) {
+    if (timeLeft <= 0) return; // don't allow input after timer ends
+    // Clear previous pressed state
+    document.querySelectorAll('.key-white.pressed, .key-black.pressed').forEach(k => k.classList.remove('pressed'));
+    // Highlight newly pressed key
+    const keyId = NOTE_KEYS[note];
+    if (keyId) document.getElementById(keyId)?.classList.add('pressed');
+    lastPressedKey = note;
+    // Play piano sound for key tap
+    playPianoKey(note);
+  }
+
+  function checkAnswer() {
+    const correctNote = noteQueue[currentNote];
+    const isDyad = Array.isArray(correctNote);
+
+    let isCorrect;
+    if (practiceMode) {
+      isCorrect = true;
+    } else if (isDyad) {
+      isCorrect = lastPressedKey === correctNote[0] || lastPressedKey === correctNote[1];
+    } else {
+      isCorrect = lastPressedKey === correctNote;
+    }
+    if (isCorrect) correctCount++;
+
+    // Show reveal card
+    const revealLabel = document.getElementById('note-reveal-label');
+    const revealName = document.getElementById('revealed-note');
+    revealLabel.textContent = isDyad ? 'The notes were' : 'The note was';
+    revealName.textContent = isDyad ? `${correctNote[0]} + ${correctNote[1]}` : correctNote;
+
+    const card = document.getElementById('note-reveal-card');
+    const result = document.getElementById('note-result');
+    card.className = `note-reveal-card ${isCorrect ? 'correct' : 'wrong'}`;
+    result.className = `note-reveal-result ${isCorrect ? 'correct' : 'wrong'}`;
+
+    if (practiceMode) {
+      result.textContent = '✓ Practice mode';
+    } else if (isCorrect) {
+      result.textContent = '✓ Correct!';
+    } else {
+      result.textContent = lastPressedKey ? `✕ You pressed ${lastPressedKey}` : '✕ No key pressed';
+    }
+
+    // Highlight correct key(s)
+    clearAllKeyStates();
+    if (isDyad) {
+      highlightKey(correctNote[0]);
+      highlightKey(correctNote[1]);
+    } else {
+      highlightKey(correctNote);
+    }
+
+    document.getElementById('note-reveal').classList.add('visible');
+
+    setTimeout(() => {
+      currentNote++;
+      nextNote();
+    }, 2000);
+  }
+
+  function highlightKey(note) {
+    const keyId = NOTE_KEYS[note];
+    if (keyId) document.getElementById(keyId)?.classList.add('highlighted');
+  }
+
+  function clearAllKeyStates() {
+    document.querySelectorAll('.key-white, .key-black').forEach(k => {
+      k.classList.remove('highlighted', 'pressed');
+    });
+  }
+
+  function updateCounter() {
+    document.getElementById('note-counter-text').textContent = `NOTE ${currentNote + 1} / ${TOTAL_NOTES}`;
+  }
+
+  function replayNote() {
+    // Works even when paused — just replays sound and resets timer
+    const note = noteQueue[currentNote];
+    if (note === undefined) return;
+    lastPressedKey = null;
+    clearAllKeyStates();
+    document.getElementById('note-reveal').classList.remove('visible');
+    // If paused, stay paused but still reset elapsed so timer restarts on resume
+    if (paused) {
+      elapsedAtPause = 0;
+      startTimestamp = null;
+    } else {
+      startTimer();
+    }
+    if (isDyadLevel) {
+      playDyad(note[0], note[1]);
+    } else {
+      playNote(note);
+    }
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const wrap = document.getElementById('timer-wrap');
+    const icon = document.getElementById('timer-pause-icon');
+    const ringEl = document.getElementById('timer-ring-outer');
+    wrap.classList.toggle('paused', paused);
+    icon.textContent = paused ? '▶' : '⏸';
+    if (paused) {
+      cancelAnimationFrame(animFrameId);
+      elapsedAtPause += performance.now() - startTimestamp;
+      ringEl.style.background = `rgba(157,95,255,0.25)`;
+    } else {
+      startTimestamp = null;
+      const { deg, hue, lightness } = lastRingState || { deg: 360, hue: 262, lightness: 75 };
+      ringEl.style.background = `conic-gradient(hsl(${hue},100%,${lightness}%) ${deg}deg, #2A2A3A ${deg}deg)`;
+      animFrameId = requestAnimationFrame(ts => {
+        startTimestamp = ts - elapsedAtPause;
+        elapsedAtPause = 0;
+        animateTimer(ts);
+      });
+    }
+  }
+
+  function showResults() {
+    stopLevel();
+    const accuracy = Math.round((correctCount / TOTAL_NOTES) * 100);
+    const passing = Math.floor(TOTAL_NOTES * 0.9);
+    const passed = correctCount >= passing;
+    const missed = TOTAL_NOTES - correctCount;
+
+    // If passed, unlock next level and save progress
+    if (passed) {
+      const nextLevel = LEVELS[CURRENT_LEVEL_INDEX + 1];
+      if (nextLevel) nextLevel.unlocked = true;
+      saveProgress();
+    }
+    let homeBtn = document.getElementById('result-home-btn');
+    if (!homeBtn) {
+      homeBtn = document.createElement('div');
+      homeBtn.id = 'result-home-btn';
+      homeBtn.className = 'result-home-btn';
+      homeBtn.onclick = () => goTo('screen-home');
+      homeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/></svg>`;
+      document.getElementById('screen-results').appendChild(homeBtn);
+    }
+
+    document.getElementById('result-score').textContent = `${correctCount}/${TOTAL_NOTES}`;
+    document.getElementById('result-score').className = `result-score ${passed ? 'pass' : 'fail'}`;
+    document.getElementById('result-accuracy').textContent = `${accuracy}% accuracy${!passed ? ` · Need 90% to pass` : ''}`;
+    document.getElementById('stat-correct').textContent = correctCount;
+    document.getElementById('stat-missed').textContent = missed;
+
+    const badge = document.getElementById('result-badge');
+    badge.textContent = passed ? '✓' : '✕';
+    badge.className = `result-badge ${passed ? 'pass' : 'fail'}`;
+
+    document.getElementById('result-title').textContent = passed ? 'Level Passed!' : 'Not Quite!';
+
+    const msg = document.getElementById('result-message');
+    msg.className = `result-message ${passed ? 'pass' : 'fail'}`;
+    document.getElementById('result-message-text').textContent = passed
+      ? 'Level 5 unlocked! Keep going.'
+      : 'Keep practicing — you\'ve got this!';
+
+    const ctas = document.getElementById('result-ctas');
+    ctas.innerHTML = passed
+      ? `<button class="btn-primary" onclick="goTo('screen-level')">Next Level →</button>
+         <button class="btn-secondary" onclick="startLevel();goTo('screen-level')">Restart Level</button>`
+      : `<button class="btn-primary" onclick="startLevel();goTo('screen-level')">Try Again</button>
+         <button class="btn-ghost" onclick="goTo('screen-levels')">Select a Different Level</button>`;
+
+    goTo('screen-results');
+  }
+
+  // ── AUDIO ──
+  const noteFreqs = { 'C':261.63,'C#':277.18,'D':293.66,'D#':311.13,'E':329.63,'F':349.23,'F#':369.99,'G':392,'G#':415.3,'A':440,'A#':466.16,'B':493.88 };
+
+  // Dyad — plays two notes simultaneously with subtle variation in delay, attack and timbre
+  function playDyad(note1, note2) {
+    try {
+      if (currentAudioNodes) {
+        currentAudioNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+        currentAudioNodes = [];
+      }
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const freq1 = noteFreqs[note1] || 440;
+      const freq2 = noteFreqs[note2] || 440;
+
+      // Note 1 — square wave (same as single note app sound)
+      const osc1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      const dist1 = ctx.createWaveShaper();
+      const curve = new Float32Array(256);
+      for (let i = 0; i < 256; i++) {
+        const x = (i * 2) / 256 - 1;
+        curve[i] = (Math.PI + 200) * x / (Math.PI + 200 * Math.abs(x));
+      }
+      dist1.curve = curve;
+      osc1.connect(dist1); dist1.connect(g1); g1.connect(ctx.destination);
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(freq1, ctx.currentTime);
+      g1.gain.setValueAtTime(0, ctx.currentTime);
+      g1.gain.linearRampToValueAtTime(0.17, ctx.currentTime + 0.01); // same attack as single
+      g1.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.1);
+      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 2.0);
+      currentAudioNodes.push(osc1);
+
+      // Note 2 — triangle wave, slight delay (30ms), softer attack — different timbre
+      const osc2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc2.connect(g2); g2.connect(ctx.destination);
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq2, ctx.currentTime);
+      g2.gain.setValueAtTime(0, ctx.currentTime);
+      g2.gain.linearRampToValueAtTime(0.17, ctx.currentTime + 0.04); // 30ms delay + softer attack
+      g2.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.18);
+      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.2); // slightly longer tail
+      osc2.start(ctx.currentTime + 0.03); // 30ms delay
+      osc2.stop(ctx.currentTime + 2.2);
+      currentAudioNodes.push(osc2);
+    } catch(e) {}
+  }
+
+  // App sound — guitar-like (square + distortion), slightly lower volume
+  function playNote(note) {
+    try {
+      if (currentAudioNodes) {
+        currentAudioNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+        currentAudioNodes = [];
+      }
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const freq = noteFreqs[note] || 440;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const distortion = ctx.createWaveShaper();
+      const curve = new Float32Array(256);
+      for (let i = 0; i < 256; i++) {
+        const x = (i * 2) / 256 - 1;
+        curve[i] = (Math.PI + 200) * x / (Math.PI + 200 * Math.abs(x));
+      }
+      distortion.curve = curve;
+      osc.connect(distortion);
+      distortion.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square'; // was 'sawtooth' — square is hollower, less bright
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.17, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 2.0);
+      currentAudioNodes.push(osc);
+    } catch(e) {}
+  }
+
+  // Player sound — piano (triangle + sine blend, quick decay)
+  function playPianoKey(note) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const freq = noteFreqs[note] || 440;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+      const master = ctx.createGain();
+      osc1.connect(gain1); gain1.connect(master);
+      osc2.connect(gain2); gain2.connect(master);
+      master.connect(ctx.destination);
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc2.frequency.setValueAtTime(freq * 2, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+      master.gain.setValueAtTime(0, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.005);
+      master.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.1);
+      master.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 1.2);
+      osc2.start(ctx.currentTime); osc2.stop(ctx.currentTime + 1.2);
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>
